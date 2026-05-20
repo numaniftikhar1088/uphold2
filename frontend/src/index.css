@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Body background ─────────────────────────────────────────────────── */
+body {
+  @apply bg-[#070B12] text-slate-100;
+  background-image:
+    radial-gradient(ellipse at top left, rgba(16, 185, 129, 0.09), transparent 40%),
+    radial-gradient(ellipse at bottom right, rgba(6, 182, 212, 0.07), transparent 40%),
+    radial-gradient(ellipse at center top, rgba(59, 130, 246, 0.04), transparent 55%);
+}
+
+input, button { @apply focus:outline-none; }
+
+/* ── Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+/* ── Keyframes ───────────────────────────────────────────────────────── */
+@keyframes float      { 0%,100%{ transform:translateY(0) }   50%{ transform:translateY(-6px) } }
+@keyframes fadeIn     { from{ opacity:0; transform:translateY(16px) } to{ opacity:1; transform:translateY(0) } }
+@keyframes fadeUp     { from{ opacity:0; transform:translateY(18px) } to{ opacity:1; transform:translateY(0) } }
+@keyframes scaleIn    { from{ opacity:0; transform:scale(0.94) }      to{ opacity:1; transform:scale(1) } }
+@keyframes slideRight { from{ opacity:0; transform:translateX(-14px)} to{ opacity:1; transform:translateX(0) } }
+@keyframes logoPulse  {
+  0%,100%{ filter:drop-shadow(0 0 6px rgba(16,185,129,0.45)) }
+  50%    { filter:drop-shadow(0 0 16px rgba(16,185,129,0.8)) }
+}
+@keyframes logoutGlow {
+  0%,100%{ filter:drop-shadow(0 0 4px rgba(239,68,68,0.55)) }
+  50%    { filter:drop-shadow(0 0 12px rgba(239,68,68,0.95)) }
+}
+@keyframes shimmerMove {
+  0%  { background-position: -200% center }
+  100%{ background-position:  200% center }
+}
+@keyframes pendingGlow {
+  0%,100%{ box-shadow: 0 0 0 0 rgba(245,158,11,0.35) }
+  50%    { box-shadow: 0 0 0 5px rgba(245,158,11,0) }
+}
+@keyframes borderSpin {
+  to { --border-angle: 360deg; }
+}
+
+/* ── Animation utility classes ───────────────────────────────────────── */
+.animate-float        { animation: float 6s ease-in-out infinite; }
+.animate-fade-in      { animation: fadeIn 0.8s ease both; }
+.animate-fade-up      { animation: fadeUp 0.45s ease both; }
+.animate-scale-in     { animation: scaleIn 0.3s ease both; }
+.animate-slide-right  { animation: slideRight 0.35s ease both; }
+.animate-logo-glow    { animation: logoPulse 3s ease-in-out infinite; }
+.animate-logout-glow  { animation: logoutGlow 2.5s ease-in-out infinite; }
+.animate-pending-glow { animation: pendingGlow 2s ease-in-out infinite; }
+
+/* Stagger delays */
+.delay-50  { animation-delay: 50ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-250 { animation-delay: 250ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+
+/* ── Global button press ─────────────────────────────────────────────── */
+button:not(:disabled) {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* ── Card lift on hover ──────────────────────────────────────────────── */
+.card-lift {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Shimmer gradient text ───────────────────────────────────────────── */
+.shimmer-text {
+  background: linear-gradient(90deg, #10B981 20%, #06B6D4 50%, #10B981 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmerMove 3s linear infinite;
+}
+
+/* ── Glowing border card ─────────────────────────────────────────────── */
+.glow-card {
+  position: relative;
+  transition: box-shadow 0.3s ease;
+}
+.glow-card:hover {
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), 0 8px 24px rgba(16, 185, 129, 0.08);
+}
+
+/* ── Input focus ring ────────────────────────────────────────────────── */
+input:focus, textarea:focus, select:focus {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
+}
+
+/* ── Number counter fill bar ─────────────────────────────────────────── */
+.stat-bar {
+  height: 2px;
+  background: linear-gradient(90deg, #10B981, #06B6D4);
+  border-radius: 1px;
+  transform-origin: left;
+  animation: scaleIn 0.6s ease both;
+}
