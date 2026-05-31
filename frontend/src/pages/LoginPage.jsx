@@ -109,6 +109,13 @@ const LoginPage = () => {
               Create free account
             </Link>
           </div>
+
+          <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1 font-semibold">Disclaimer</p>
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              UPhold is an independent platform. We are not affiliated, associated, or in any way officially connected with uphold.com or uphold Exchange.
+            </p>
+          </div>
         </div>
 
         <div className="hidden lg:flex flex-col justify-center items-center space-y-6">

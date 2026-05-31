@@ -40,8 +40,8 @@ const getAllWithdraws = async () => {
   return data;
 };
 
-const approveDeposit = async (id, note) => {
-  const { data } = await api.put(`/requests/deposits/${id}/approve`, { note });
+const approveDeposit = async (id, note, approvedAmount) => {
+  const { data } = await api.put(`/requests/deposits/${id}/approve`, { note, approvedAmount });
   return data;
 };
 
@@ -50,8 +50,8 @@ const rejectDeposit = async (id, note) => {
   return data;
 };
 
-const approveWithdraw = async (id, note) => {
-  const { data } = await api.put(`/requests/withdraws/${id}/approve`, { note });
+const approveWithdraw = async (id, note, approvedAmount) => {
+  const { data } = await api.put(`/requests/withdraws/${id}/approve`, { note, approvedAmount });
   return data;
 };
 

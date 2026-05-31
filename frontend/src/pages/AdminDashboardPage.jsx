@@ -57,7 +57,7 @@ const AdminDashboardPage = () => {
           withdraws:   withdraws.filter((r) => r.status === 'pending').length,
           deposits:    deposits.filter((r) => r.status === 'pending').length,
           trades:      trades.length,
-          chats:       conversations.length,
+          chats:       conversations.filter((c) => c.lastMessage && !c.lastMessage.isAdmin).length,
           kyc:         kycUsers.length,
         });
       } catch (e) {
@@ -74,8 +74,7 @@ const AdminDashboardPage = () => {
       <div className="mx-auto max-w-4xl space-y-6">
 
         <div>
-          <p className="text-xs uppercase tracking-widest text-slate-500">Welcome back</p>
-          <h1 className="mt-0.5 text-2xl font-bold text-white">{user?.name}</h1>
+          <h1 className="mt-0.5 text-2xl font-bold text-white">Welcome</h1>
         </div>
 
         {loading ? (
@@ -85,7 +84,7 @@ const AdminDashboardPage = () => {
             <StatCard label="Pending Withdrawals" value={stats.withdraws} to="/admin/withdraw" color="text-amber-400"  delay="0ms" />
             <StatCard label="Pending Deposits"    value={stats.deposits}  to="/admin/deposit"  color="text-emerald-400" delay="60ms" />
             <StatCard label="Pending KYC"         value={stats.kyc}       to="/admin/kyc"      color="text-sky-400"   delay="120ms" />
-            <StatCard label="Support Chats"       value={stats.chats}     to="/admin/support"  color="text-violet-400" delay="180ms" />
+            <StatCard label="New Messages"         value={stats.chats}     to="/admin/support"  color="text-violet-400" delay="180ms" />
             <StatCard label="Pending Trades"      value={stats.trades}    to="/admin/trades"   color="text-cyan-400"  delay="240ms" />
           </div>
         )}

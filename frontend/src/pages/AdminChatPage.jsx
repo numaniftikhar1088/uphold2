@@ -67,6 +67,7 @@ const AdminChatPage = () => {
   const { user, token } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser]   = useState(null);
+  const [searchQuery, setSearchQuery]     = useState('');
   const [input, setInput]                 = useState('');
   const [attachment, setAttachment]       = useState(null); // { fileData, fileType, fileName, preview }
   const [loading, setLoading]             = useState(false);
@@ -143,16 +144,36 @@ const AdminChatPage = () => {
 
       {/* Conversation list */}
       <aside className="md:w-72 shrink-0 border-b md:border-b-0 md:border-r border-slate-800/60 bg-[#0D1421]">
-        <div className="px-4 py-4 border-b border-slate-800/60 flex items-center justify-between">
-          <h1 className="text-sm font-bold text-white">Support Chats</h1>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${connected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-500'}`}>
-            {connected ? 'Live' : 'Offline'}
-          </span>
+        <div className="px-4 py-4 border-b border-slate-800/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-sm font-bold text-white">Support Chats</h1>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${connected ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-500'}`}>
+              {connected ? 'Live' : 'Offline'}
+            </span>
+          </div>
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name..."
+              className="w-full rounded-xl bg-slate-800/60 border border-slate-700/40 pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-slate-500 placeholder-slate-600 transition"
+            />
+          </div>
         </div>
-        <div className="overflow-y-auto max-h-[calc(100vh-120px)] divide-y divide-slate-800/40">
+        <div className="overflow-y-auto max-h-[calc(100vh-160px)] divide-y divide-slate-800/40">
           {conversations.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate-500">No conversations yet.</p>
-          ) : conversations.map((c) => {
+          ) : conversations.filter((c) =>
+              !searchQuery.trim() || c.userName?.toLowerCase().includes(searchQuery.trim().toLowerCase())
+            ).length === 0 ? (
+            <p className="px-4 py-6 text-sm text-slate-500">No users match "{searchQuery}".</p>
+          ) : conversations.filter((c) =>
+              !searchQuery.trim() || c.userName?.toLowerCase().includes(searchQuery.trim().toLowerCase())
+            ).map((c) => {
             const active = selectedUser?.userId === c.userId;
             return (
               <button

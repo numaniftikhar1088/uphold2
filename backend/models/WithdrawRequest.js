@@ -32,6 +32,9 @@ const withdrawRequestSchema = new mongoose.Schema(
       ifscCode:      { type: String },
       bankName:      { type: String },
     },
+    approvedAmount: {
+      type: Number,
+    },
     transactionFee: {
       type: Number,
       default: 3.00,

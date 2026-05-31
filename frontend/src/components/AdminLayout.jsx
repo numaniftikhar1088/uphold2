@@ -114,7 +114,7 @@ const AdminLayout = ({ children }) => {
                 <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
               </div>
             </Link>
-            <NotificationDropdown />
+            <NotificationDropdown chatOnly={true} />
           </div>
         </div>
 
@@ -161,7 +161,7 @@ const AdminLayout = ({ children }) => {
             <span className="text-sm font-bold text-white">UPhold</span>
           </Link>
           <div className="flex items-center gap-2">
-            <NotificationDropdown />
+            <NotificationDropdown chatOnly={true} />
             <button
               onClick={handleLogout}
               className="text-xs text-slate-400 hover:text-red-400 transition px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40 inline-flex items-center gap-1.5"

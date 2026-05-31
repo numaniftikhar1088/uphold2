@@ -9,6 +9,8 @@ const CHAINS = {
   'TRC-20': 'TPoZuZEqaHHm8aK9TUn57qiKXVSvjsYk2e',
 };
 
+const METHODS = ['BEP-20', 'TRC-20', 'Bank Transfer'];
+
 const compressImage = (file, maxWidth = 1024, quality = 0.75) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -36,7 +38,7 @@ const compressImage = (file, maxWidth = 1024, quality = 0.75) =>
 const DepositPage = () => {
   const { user, token } = useAuth();
 
-  const [chain, setChain]                   = useState('BEP-20');
+  const [method, setMethod]                 = useState('BEP-20');
   const [amount, setAmount]                 = useState('');
   const [transferAddress, setTransferAddress] = useState('');
   const [transactionId, setTransactionId]   = useState('');
@@ -60,7 +62,8 @@ const DepositPage = () => {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const walletAddress = CHAINS[chain];
+  const isCrypto = method !== 'Bank Transfer';
+  const walletAddress = isCrypto ? CHAINS[method] : null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(walletAddress).then(() => {
@@ -76,21 +79,27 @@ const DepositPage = () => {
     setCertificatePreview(URL.createObjectURL(file));
   };
 
+  const handleMethodChange = (m) => {
+    setMethod(m);
+    setError('');
+    setSuccess('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setSuccess('');
     const value = Number(amount);
-    if (!value || value <= 0)          { setError('Enter a valid deposit amount.'); return; }
-    if (!transferAddress.trim())       { setError('Transfer address is required.'); return; }
-    if (!transactionId.trim())         { setError('Transaction ID (hash) is required.'); return; }
-    if (!transactionPassword)          { setError('Transaction password is required.'); return; }
-    if (!certificate)                  { setError('Please attach a certificate screenshot.'); return; }
+    if (!value || value <= 0)         { setError('Enter a valid deposit amount.'); return; }
+    if (isCrypto && !transferAddress.trim()) { setError('Transfer address is required.'); return; }
+    if (!transactionId.trim())        { setError('Transaction ID is required.'); return; }
+    if (!transactionPassword)         { setError('Transaction password is required.'); return; }
+    if (!certificate)                 { setError('Please attach a certificate screenshot.'); return; }
 
     setSubmitting(true);
     try {
       const certBase64 = await compressImage(certificate);
       const { deposit } = await requestService.createDeposit(
-        value, chain, transferAddress, transactionId, certBase64, transactionPassword
+        value, method, isCrypto ? transferAddress : '', transactionId, certBase64, transactionPassword
       );
       setSuccess('Deposit request submitted successfully. Admin will review and credit your account.');
       setRequests((prev) => [deposit, ...prev]);
@@ -111,7 +120,9 @@ const DepositPage = () => {
 
   const inputClass = 'w-full bg-transparent text-sm text-white outline-none placeholder-slate-600';
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(walletAddress)}&bgcolor=0d1421&color=ffffff&margin=8`;
+  const qrUrl = isCrypto
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(walletAddress)}&bgcolor=0d1421&color=ffffff&margin=8`
+    : null;
 
   const kycBlocked = user?.kycStatus !== 'verified';
 
@@ -132,61 +143,65 @@ const DepositPage = () => {
           </div>
         </div>
 
-        {/* QR + Chain card */}
+        {/* Method selector card */}
         <div className="rounded-2xl bg-[#0D1421] ring-1 ring-white/[0.06] overflow-hidden">
-
-          {/* Bank deposit note */}
-          <div className="mx-5 mt-4 rounded-xl bg-blue-500/10 border border-blue-500/20 px-4 py-3 flex items-start gap-2.5">
-            <svg className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-blue-300">
-              To deposit using bank account,{' '}
-              <Link to="/chat" className="font-semibold underline text-blue-200 hover:text-white transition">
-                contact support
-              </Link>.
-            </p>
-          </div>
-
-          {/* Chain selector */}
           <div className="px-5 py-4 space-y-3">
-            <p className="text-sm font-semibold text-white">Select Chain</p>
-            <div className="flex gap-2">
-              {Object.keys(CHAINS).map((c) => (
+            <p className="text-sm font-semibold text-white">Select Method</p>
+            <div className="flex gap-2 flex-wrap">
+              {METHODS.map((m) => (
                 <button
-                  key={c} type="button"
-                  onClick={() => setChain(c)}
+                  key={m} type="button"
+                  onClick={() => handleMethodChange(m)}
                   className={`rounded-2xl px-5 py-2 text-sm font-bold transition ${
-                    chain === c
-                      ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
+                    method === m
+                      ? m === 'Bank Transfer'
+                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                        : 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
                       : 'bg-slate-800/70 text-slate-400 hover:bg-slate-700'
                   }`}
                 >
-                  {c}
+                  {m}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* QR code */}
-          <div className="border-t border-slate-800/60 px-5 py-5 flex flex-col items-center gap-3">
-            <p className="text-xs text-slate-500 uppercase tracking-widest">Scan QR Code and Pay</p>
-            <div className="rounded-2xl border-2 border-emerald-500/30 p-2 bg-[#0a1120]">
-              <img
-                src={qrUrl}
-                alt={`${chain} QR code`}
-                className="w-40 h-40 rounded-lg"
-              />
+          {/* Crypto QR section */}
+          {isCrypto && (
+            <div className="border-t border-slate-800/60 px-5 py-5 flex flex-col items-center gap-3">
+              <p className="text-xs text-slate-500 uppercase tracking-widest">Scan QR Code and Pay</p>
+              <div className="rounded-2xl border-2 border-emerald-500/30 p-2 bg-[#0a1120]">
+                <img
+                  src={qrUrl}
+                  alt={`${method} QR code`}
+                  className="w-40 h-40 rounded-lg"
+                />
+              </div>
+              <p className="text-[11px] text-slate-300 font-mono text-center break-all px-2">{walletAddress}</p>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="rounded-full border border-emerald-500/40 px-6 py-1.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 transition"
+              >
+                {copied ? 'Copied!' : 'Copy Address'}
+              </button>
             </div>
-            <p className="text-[11px] text-slate-300 font-mono text-center break-all px-2">{walletAddress}</p>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="rounded-full border border-emerald-500/40 px-6 py-1.5 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/10 transition"
-            >
-              {copied ? 'Copied!' : 'Copy Address'}
-            </button>
-          </div>
+          )}
+
+          {/* Bank Transfer note */}
+          {!isCrypto && (
+            <div className="border-t border-slate-800/60 mx-5 mt-0 mb-4 rounded-xl bg-blue-500/10 border border-blue-500/20 px-4 py-3 flex items-start gap-2.5 mt-4">
+              <svg className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-blue-300">
+                For Bank Account Details Contact{' '}
+                <Link to="/chat" className="font-semibold underline text-blue-200 hover:text-white transition">
+                  Support
+                </Link>.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Form card */}
@@ -211,27 +226,29 @@ const DepositPage = () => {
               </div>
             </div>
 
-            {/* Transfer address */}
-            <div className="px-5 py-4 space-y-2">
-              <p className="text-sm font-semibold text-white">Transfer address</p>
-              <div className="rounded-xl bg-slate-800/40 border border-slate-700/40 px-4 py-3">
-                <input
-                  value={transferAddress}
-                  onChange={(e) => setTransferAddress(e.target.value)}
-                  placeholder="Please enter the transfer address"
-                  className={inputClass}
-                />
+            {/* Transfer address — crypto only */}
+            {isCrypto && (
+              <div className="px-5 py-4 space-y-2">
+                <p className="text-sm font-semibold text-white">Transfer address</p>
+                <div className="rounded-xl bg-slate-800/40 border border-slate-700/40 px-4 py-3">
+                  <input
+                    value={transferAddress}
+                    onChange={(e) => setTransferAddress(e.target.value)}
+                    placeholder="Please enter the transfer address"
+                    className={inputClass}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Transaction ID */}
             <div className="px-5 py-4 space-y-2">
-              <p className="text-sm font-semibold text-white">Transaction ID(hash)</p>
+              <p className="text-sm font-semibold text-white">Transaction ID</p>
               <div className="rounded-xl bg-slate-800/40 border border-slate-700/40 px-4 py-3">
                 <input
                   value={transactionId}
                   onChange={(e) => setTransactionId(e.target.value)}
-                  placeholder="Please enter the transaction ID"
+                  placeholder={isCrypto ? 'Please enter the transaction hash' : 'Please enter the bank transaction ID'}
                   className={inputClass}
                 />
               </div>
@@ -299,7 +316,7 @@ const DepositPage = () => {
                 type="submit" disabled={submitting}
                 className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-400 py-3.5 text-sm font-bold text-slate-950 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
-                {submitting ? 'Submitting...' : 'Submit'}
+                {submitting ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
 
@@ -322,7 +339,11 @@ const DepositPage = () => {
                 <div key={r._id} className="rounded-xl bg-slate-800/30 border border-slate-800/60 px-4 py-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-lg bg-slate-700/60 px-2 py-0.5 text-[10px] font-bold text-slate-300">{r.chain || '—'}</span>
+                      <span className={`rounded-lg px-2 py-0.5 text-[10px] font-bold ${
+                        r.chain === 'Bank Transfer'
+                          ? 'bg-blue-500/20 text-blue-300'
+                          : 'bg-slate-700/60 text-slate-300'
+                      }`}>{r.chain || '—'}</span>
                       <span className="font-semibold text-white text-sm">${r.amount.toFixed(2)}</span>
                       {r.approvedAmount != null && r.status === 'approved' && (
                         <span className="text-xs text-emerald-400">→ ${r.approvedAmount.toFixed(2)} credited</span>

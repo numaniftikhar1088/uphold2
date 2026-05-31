@@ -9,12 +9,11 @@ const depositRequestSchema = new mongoose.Schema(
     },
     chain: {
       type: String,
-      enum: ['BEP-20', 'TRC-20'],
+      enum: ['BEP-20', 'TRC-20', 'Bank Transfer'],
       required: true,
     },
     transferAddress: {
       type: String,
-      required: true,
       trim: true,
     },
     transactionId: {

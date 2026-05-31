@@ -13,10 +13,10 @@ const createDepositRequest = async (req, res, next) => {
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: 'Amount must be greater than zero.' });
     }
-    if (!chain || !['BEP-20', 'TRC-20'].includes(chain)) {
-      return res.status(400).json({ message: 'Select a valid chain (BEP-20 or TRC-20).' });
+    if (!chain || !['BEP-20', 'TRC-20', 'Bank Transfer'].includes(chain)) {
+      return res.status(400).json({ message: 'Select a valid deposit method.' });
     }
-    if (!transferAddress || !transferAddress.trim()) {
+    if (chain !== 'Bank Transfer' && (!transferAddress || !transferAddress.trim())) {
       return res.status(400).json({ message: 'Transfer address is required.' });
     }
     if (!transactionId || !transactionId.trim()) {
@@ -188,10 +188,15 @@ const approveDepositRequest = async (req, res, next) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.balance += deposit.amount;
+    const creditAmount = req.body.approvedAmount != null && Number(req.body.approvedAmount) > 0
+      ? Number(req.body.approvedAmount)
+      : deposit.amount;
+
+    user.balance += creditAmount;
     await user.save();
 
     deposit.status = 'approved';
+    deposit.approvedAmount = creditAmount;
     deposit.note = req.body.note || deposit.note;
     await deposit.save();
 
@@ -202,7 +207,7 @@ const approveDepositRequest = async (req, res, next) => {
       deposit.userId,
       'deposit_approved',
       'Deposit Approved',
-      `Your deposit of $${deposit.amount.toFixed(2)} has been approved and credited to your account.`
+      `Your deposit of $${creditAmount.toFixed(2)} has been approved and credited to your account.`
     );
 
     res.json({ deposit, user });
@@ -252,14 +257,19 @@ const approveWithdrawRequest = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    if (user.balance < withdraw.amount) {
+    const deductAmount = req.body.approvedAmount != null && Number(req.body.approvedAmount) > 0
+      ? Number(req.body.approvedAmount)
+      : withdraw.amount;
+
+    if (user.balance < deductAmount) {
       return res.status(400).json({ message: 'Insufficient balance for withdrawal' });
     }
 
-    user.balance -= withdraw.amount;
+    user.balance -= deductAmount;
     await user.save();
 
     withdraw.status = 'approved';
+    withdraw.approvedAmount = deductAmount;
     withdraw.note = req.body.note || withdraw.note;
     await withdraw.save();
 
@@ -270,7 +280,7 @@ const approveWithdrawRequest = async (req, res, next) => {
       withdraw.userId,
       'withdraw_approved',
       'Withdrawal Approved',
-      `Your withdrawal request for $${withdraw.amount.toFixed(2)} has been approved.`
+      `Your withdrawal of $${deductAmount.toFixed(2)} has been approved.`
     );
 
     res.json({ withdraw, user });

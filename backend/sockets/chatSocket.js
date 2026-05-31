@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const Message = require('../models/Message');
+const User = require('../models/User');
 const { setIo } = require('../utils/socket');
 const { createNotification } = require('../controllers/notificationController');
 
@@ -50,18 +51,30 @@ const initChatSocket = (server) => {
         });
 
         io.to(userRoom).emit('receive_message', message);
+
+        const preview = message.content
+          ? message.content.slice(0, 80)
+          : (message.fileName || 'Attachment');
+
         if (socket.isAdmin) {
-          io.to('admins').emit('notification', { room: userRoom, message });
-          // Persist a notification for the user so it shows in the bell
-          const preview = message.content
-            ? message.content.slice(0, 80)
-            : (message.fileName || 'Attachment');
+          // Persist notification for the user (reply from support)
           await createNotification(
             userRoom,
             'chat_reply',
             'Support Reply',
             `Support team: ${preview}`
           );
+        } else {
+          // User sent a message — notify all admins
+          const admins = await User.find({ role: 'admin' }).select('_id').lean();
+          for (const admin of admins) {
+            await createNotification(
+              admin._id,
+              'new_chat_message',
+              'New Support Message',
+              `${socket.userName}: ${preview}`
+            );
+          }
         }
       } catch (error) {
         console.error('Socket error saving message:', error.message);

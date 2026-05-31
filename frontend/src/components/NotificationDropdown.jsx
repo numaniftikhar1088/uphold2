@@ -20,8 +20,15 @@ const typeIcon = (type) => {
   return '🔔';
 };
 
-const NotificationDropdown = () => {
-  const { notifications, unreadCount, markNotificationAsRead, markAllNotificationsAsRead } = useNotifications();
+const NotificationDropdown = ({ chatOnly = false }) => {
+  const { notifications: allNotifications, unreadCount: allUnreadCount, markNotificationAsRead, markAllNotificationsAsRead } = useNotifications();
+
+  const notifications = chatOnly
+    ? allNotifications.filter((n) => n.type === 'new_chat_message')
+    : allNotifications;
+  const unreadCount = chatOnly
+    ? notifications.filter((n) => !n.read).length
+    : allUnreadCount;
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({});
   const buttonRef = useRef(null);
@@ -91,7 +98,7 @@ const NotificationDropdown = () => {
       <div className="px-4 py-3 border-b border-slate-700/40 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BellIcon className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-semibold text-white">Notifications</span>
+          <span className="text-sm font-semibold text-white">{chatOnly ? 'New Messages' : 'Notifications'}</span>
           {unreadCount > 0 && (
             <span className="bg-rose-500/20 text-rose-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
               {unreadCount}
@@ -115,7 +122,7 @@ const NotificationDropdown = () => {
             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center">
               <BellIcon className="w-5 h-5 text-slate-600" />
             </div>
-            <p className="text-sm text-slate-500">No notifications yet</p>
+            <p className="text-sm text-slate-500">{chatOnly ? 'No new messages' : 'No notifications yet'}</p>
           </div>
         ) : (
           notifications.map((n) => (

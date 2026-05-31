@@ -14,14 +14,15 @@ const statusStyle = (s) =>
                       'bg-amber-500/20 text-amber-400 border-amber-500/20';
 
 const AdminDepositPage = () => {
-  const [requests, setRequests]       = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState('');
-  const [notes, setNotes]             = useState({});
-  const [acting, setActing]           = useState({});
-  const [lightbox, setLightbox]       = useState(null);
-  const [certLoading, setCertLoading] = useState({});
-  const [certs, setCerts]             = useState({});
+  const [requests, setRequests]             = useState([]);
+  const [loading, setLoading]               = useState(true);
+  const [error, setError]                   = useState('');
+  const [notes, setNotes]                   = useState({});
+  const [approvedAmounts, setApprovedAmounts] = useState({});
+  const [acting, setActing]                 = useState({});
+  const [lightbox, setLightbox]             = useState(null);
+  const [certLoading, setCertLoading]       = useState({});
+  const [certs, setCerts]                   = useState({});
 
   const load = async () => {
     setLoading(true);
@@ -51,12 +52,17 @@ const AdminDepositPage = () => {
     }
   };
 
-  const handleAction = async (id, action) => {
+  const handleAction = async (id, action, requestedAmount) => {
     setActing((p) => ({ ...p, [id]: true }));
     setError('');
     try {
-      if (action === 'approve') await requestService.approveDeposit(id, notes[id]);
-      else                      await requestService.rejectDeposit(id, notes[id]);
+      if (action === 'approve') {
+        const typed = parseFloat(approvedAmounts[id]);
+        const amountToCredit = !isNaN(typed) && typed > 0 ? typed : requestedAmount;
+        await requestService.approveDeposit(id, notes[id], amountToCredit);
+      } else {
+        await requestService.rejectDeposit(id, notes[id]);
+      }
       await load();
     } catch (err) {
       setError(err?.response?.data?.message || 'Action failed. Please try again.');
@@ -108,7 +114,6 @@ const AdminDepositPage = () => {
           </div>
         )}
 
-        {/* Pending requests */}
         {!loading && pending.length === 0 && !error && (
           <div className="rounded-2xl bg-[#0D1421] ring-1 ring-white/[0.06] px-5 py-10 text-center text-sm text-slate-500">
             No pending deposit requests.
@@ -118,7 +123,7 @@ const AdminDepositPage = () => {
         {pending.map((r) => (
           <div key={r._id} className="rounded-2xl bg-[#0D1421] ring-1 ring-white/[0.06] overflow-hidden">
 
-            {/* Top bar: user + amount + status */}
+            {/* Top bar: user + requested amount + status */}
             <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-slate-800/60">
               <div>
                 <p className="font-semibold text-white">{r.userId?.name || '—'}</p>
@@ -127,19 +132,25 @@ const AdminDepositPage = () => {
               </div>
               <div className="text-right shrink-0">
                 <p className="text-2xl font-black text-emerald-400">${r.amount.toFixed(2)}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">USDT · will be credited on approve</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Requested amount</p>
               </div>
             </div>
 
-            {/* Chain + transfer address + tx ID */}
+            {/* Method + transfer address + tx ID */}
             <div className="px-5 py-4 border-b border-slate-800/60 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
-                  {r.chain || 'Unknown chain'}
+                <span className={`rounded-lg border px-2.5 py-0.5 text-xs font-bold ${
+                  r.chain === 'Bank Transfer'
+                    ? 'bg-blue-500/20 border-blue-500/30 text-blue-400'
+                    : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                }`}>
+                  {r.chain || 'Unknown'}
                 </span>
               </div>
-              <Field label="Transfer Address (From)" value={r.transferAddress} />
-              <Field label="Transaction ID / Hash" value={r.transactionId} />
+              {r.chain !== 'Bank Transfer' && (
+                <Field label="Transfer Address (From)" value={r.transferAddress} />
+              )}
+              <Field label="Transaction ID / Reference" value={r.transactionId} />
             </div>
 
             {/* Certificate — loaded on demand */}
@@ -170,8 +181,30 @@ const AdminDepositPage = () => {
               )}
             </div>
 
-            {/* Approve / Reject */}
+            {/* Admin approval section */}
             <div className="px-5 py-4 space-y-3">
+
+              {/* Amount to credit input */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">Amount to Credit (USD)</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 rounded-xl bg-slate-800/60 border border-slate-700/40 px-4 py-2.5 flex items-center gap-2">
+                    <span className="text-slate-500 text-sm font-semibold">$</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={approvedAmounts[r._id] ?? ''}
+                      onChange={(e) => setApprovedAmounts((p) => ({ ...p, [r._id]: e.target.value }))}
+                      placeholder={`Default: ${r.amount.toFixed(2)}`}
+                      className="flex-1 bg-transparent text-sm text-white outline-none placeholder-slate-600"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-600 shrink-0">Requested: <span className="text-slate-400">${r.amount.toFixed(2)}</span></p>
+                </div>
+                <p className="text-[11px] text-slate-600">Leave blank to credit the requested amount exactly.</p>
+              </div>
+
               <textarea
                 value={notes[r._id] || ''}
                 onChange={(e) => setNotes((p) => ({ ...p, [r._id]: e.target.value }))}
@@ -182,14 +215,18 @@ const AdminDepositPage = () => {
               <div className="flex gap-2">
                 <button
                   disabled={acting[r._id]}
-                  onClick={() => handleAction(r._id, 'approve')}
+                  onClick={() => handleAction(r._id, 'approve', r.amount)}
                   className="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-bold text-slate-950 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
-                  {acting[r._id] ? 'Processing...' : `✓ Approve — credit $${r.amount.toFixed(2)}`}
+                  {acting[r._id] ? 'Processing...' : `✓ Approve & Credit $${
+                    approvedAmounts[r._id] && parseFloat(approvedAmounts[r._id]) > 0
+                      ? parseFloat(approvedAmounts[r._id]).toFixed(2)
+                      : r.amount.toFixed(2)
+                  }`}
                 </button>
                 <button
                   disabled={acting[r._id]}
-                  onClick={() => handleAction(r._id, 'reject')}
+                  onClick={() => handleAction(r._id, 'reject', r.amount)}
                   className="rounded-xl bg-slate-800/60 border border-rose-500/30 px-5 py-2.5 text-sm font-bold text-rose-400 hover:bg-rose-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                   ✕ Reject
@@ -209,9 +246,16 @@ const AdminDepositPage = () => {
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="space-y-0.5">
                     <p className="text-sm font-semibold text-white">{r.userId?.name}
-                      <span className="text-slate-400 font-normal"> · ${r.amount.toFixed(2)} USDT</span>
+                      <span className="text-slate-400 font-normal"> · ${r.amount.toFixed(2)} requested</span>
+                      {r.approvedAmount != null && r.status === 'approved' && (
+                        <span className="text-emerald-400 font-normal"> → ${r.approvedAmount.toFixed(2)} credited</span>
+                      )}
                     </p>
-                    {r.chain && <p className="text-[11px] text-slate-500">{r.chain}</p>}
+                    {r.chain && (
+                      <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        r.chain === 'Bank Transfer' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'
+                      }`}>{r.chain}</span>
+                    )}
                     {r.transactionId && <p className="text-[11px] text-slate-600 font-mono truncate max-w-xs">{r.transactionId}</p>}
                     <p className="text-[11px] text-slate-600">{new Date(r.createdAt).toLocaleString()}</p>
                     {r.note && <p className="text-[11px] text-slate-500 italic">{r.note}</p>}
